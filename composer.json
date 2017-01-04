@@ -6,6 +6,7 @@
         "name": "boolw",
         "email": "boolw@boolw.com"
     }],
+    "minimum-stability": "beta",
     "require": {
         "php": "^5.6 || ^7.0",
         "socialiteproviders/manager": "~2.0"
