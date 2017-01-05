@@ -10,13 +10,9 @@ class Provider extends AbstractProvider implements ProviderInterface
 {
     /**
      * Unique Provider Identifier.
+     * http://developer.baidu.com/wiki/index.php?title=docs/oauth/authorization
      */
     const IDENTIFIER = 'BAIDU';
-
-    /**
-     * @var string
-     */
-    private $openId;
 
     /**
      * The scopes being requested.
@@ -54,13 +50,11 @@ class Provider extends AbstractProvider implements ProviderInterface
     protected function getUserByToken($token)
     {
         $response = $this->getHttpClient()->get('https://openapi.baidu.com/rest/2.0/passport/users/getLoggedInUser?access_token='.$token);
-
-        $this->openId = json_decode($this->removeCallback($response->getBody()->getContents()), true)['openid'];
-
-        $response = $this->getHttpClient()->get(
-            "https://graph.qq.com/user/get_user_info?access_token=$token&openid={$this->openId}&oauth_consumer_key={$this->clientId}"
-        );
-
+        
+//      $user = json_decode($this->removeCallback($response->getBody()->getContents()), true);
+//      
+//      $response = $this->getHttpClient()->get('https://openapi.baidu.com/rest/2.0/passport/users/getInfo?access_token='.$token);
+        
         return json_decode($this->removeCallback($response->getBody()->getContents()), true);
     }
 
@@ -72,8 +66,8 @@ class Provider extends AbstractProvider implements ProviderInterface
     protected function mapUserToObject(array $user)
     {
         return (new User())->setRaw($user)->map([
-            'id' => $this->openId, 'nickname' => $user['nickname'],
-            'name' => null, 'email' => null, 'avatar' => $user['figureurl_qq_2'],
+            'id' => $user['uid'], 'nickname' => $user['uname'],
+            'name' => null, 'email' => null, 'avatar' => 'http://tb.himg.baidu.com/sys/portrait/item/'.$user['portrait'],
         ]);
     }
 
@@ -87,28 +81,6 @@ class Provider extends AbstractProvider implements ProviderInterface
         return array_merge(parent::getTokenFields($code), [
             'grant_type' => 'authorization_code',
         ]);
-    }
-
-    /**
-     * {@inheritdoc}.
-     *
-     * @see \Laravel\Socialite\Two\AbstractProvider::getAccessToken()
-     */
-    public function getAccessTokenResponse($code)
-    {
-        $response = $this->getHttpClient()->get($this->getTokenUrl(), [
-            'query' => $this->getTokenFields($code),
-        ]);
-
-        /*
-         * Response content format is "access_token=FE04************************CCE2&expires_in=7776000&refresh_token=88E4************************BE14"
-         * Not like "{'access_token':'FE04************************CCE2','expires_in':7776000,'refresh_token':'88E4************************BE14'}"
-         * So it can't be decode by json_decode!
-        */
-        $content = $response->getBody()->getContents();
-        parse_str($content, $result);
-
-        return $result;
     }
 
     /**
